@@ -156,15 +156,11 @@ module ActiveMerchant
       def build_payment_node(xml, node, payer, options = {})
         xml.frt node.to_sym do
           xml.frt :Payer do
-            xml.frt :Name, payer.company_name
+            xml.frt :Name, payer.company_name unless payer.company_name.nil?
             xml.frt :Address do
-              xml.frt :AddressLine, payer.address1
-              if payer.address2.present?
-                xml.frt :AddressLine, payer.address2
-              end
-              if payer.address3.present?
-                xml.frt :AddressLine, payer.address3
-              end
+              xml.frt :AddressLine, payer.address1 unless payer.address1.nil?
+              xml.frt :AddressLine2, payer.address2 unless payer.address2.nil?
+              xml.frt :AddressLine3, payer.address3 unless payer.address3.nil?
               xml.frt :City, payer.city
               xml.frt :StateProvinceCode, payer.state
               xml.frt :PostalCode, payer.postal_code
