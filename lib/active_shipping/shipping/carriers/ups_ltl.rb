@@ -68,7 +68,7 @@ module ActiveMerchant
       end
       alias_method :response_success?, :parse_success_response?
 
-      def parse_fault_response(xml,options)
+      def parse_fault(xml,options)
         if respond_to?(Rails.logger.debug,true)
           Rails.logger.debug(xml.to_s)
         else
