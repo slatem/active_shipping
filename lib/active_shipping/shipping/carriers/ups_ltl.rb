@@ -69,11 +69,7 @@ module ActiveMerchant
       alias_method :response_success?, :parse_success_response?
 
       def parse_fault(xml,options)
-        if respond_to?(Rails.logger,true)
-          Rails.logger.debug(xml.to_s)
-        else
-          puts xml.to_s
-        end
+          Response.new(false, xml.at('PrimaryErrorCode > Description').text, options)
       end
       def parse_freight_rate_response(xml, options)
         success = parse_success_response?(xml)
