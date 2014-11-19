@@ -30,13 +30,13 @@ module ActiveMerchant
         options = @options.merge(options)
         packages = Array(packages)
         rate_request = build_rate_request(origin, destination, packages, payer, options)
+        #puts rate_request.to_s
         response = commit(:rates, save_request(rate_request), (options[:test] || false))
         @origin = origin
         @desination = destination
         @packages = packages
         @payer = payer
         @options = options
-        #parse_rate_response(origin, destination, packages, response, options)
         parse(response)
       end
 
@@ -89,31 +89,7 @@ module ActiveMerchant
         end
         RateResponse.new(success, message, Hash.from_xml(xml.to_xml).values.first, :rates => rate_estimates, :xml => xml, :request => options[:request])
       end
-      def parse_rate_response(origin, destination, packages, response, options = {})
-        rates = []
-        xml = Nokogiri::XML(response)
-        success = response_success?(xml)
-        message = response_message(xml)
 
-        if success
-          rate_estimates = []
-
-          xml.elements.each('/*/TotalShipmentCharge') do |rated_shipment|
-            service_code = rated_shipment.get_text('Service/Code').to_s.to_i
-            #days_to_delivery = nil if days_to_delivery == 0
-            rate_estimates << RateEstimate.new(origin, destination, @@name,
-                                               service_name_for(origin, service_code),
-                                               :total_price => rated_shipment.get_text('TotalShipmentCharge/MonetaryValue').to_s.to_f,
-
-                                               :currency => rated_shipment.get_text('TotalCharges/CurrencyCode').to_s,
-                                               :service_code => service_code,
-                                               :packages => packages,
-                                               #:negotiated_rate =>                              rated_shipment.get_text('NegotiatedRates/NetSummaryCharges/GrandTotal/MonetaryValue').to_s.to_f
-            )
-          end
-        end
-        RateResponse.new(success, message, Hash.from_xml(response).values.first, :rates => rate_estimates, :xml => response, :request => last_request)
-      end
 
       def commit(action, request, test = false)
         ssl_post("#{test ? TEST_URL : LIVE_URL}/#{RESOURCES[action]}", request, 'Content-Type' => 'text/xml')#, 'SOAPAction' => "http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0#UPSSecurity")
@@ -276,6 +252,22 @@ module ActiveMerchant
             packages.each do |package|
               xml.frt :Commodity do
                 build_commodity_node(xml, package, options)
+              end
+            end
+            if [:residential_pickup,:lift_gate_required_on_pickup, :residential_delivery, :lift_gate_required_on_delivery].any? { |i| options.include?(i) }
+              xml.frt :ShipmentServiceOptions do
+                if options[:residential_pickup] || options[:lift_gate_required_on_pickup]
+                  xml.frt :PickupOptions do
+                    xml.frt :ResidentialPickupIndicator unless options[:residential_pickup].nil?
+                    xml.frt :LiftGateRequiredIndicator unless options[:lift_gate_required_on_pickup].nil?
+                  end
+                end
+                if options[:residential_delivery] || options[:lift_gate_required_on_delivery]
+                  xml.frt :DeliveryOptions do
+                    xml.frt :ResidentialDeliveryIndicator unless options[:residential_delivery].nil?
+                    xml.frt :LiftGateRequiredIndicator unless options[:lift_gate_required_on_delivery].nil?
+                  end
+                end
               end
             end
           end
