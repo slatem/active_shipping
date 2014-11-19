@@ -15,7 +15,7 @@ class UPSLTLTest < Test::Unit::TestCase
         :country=>"US"
                           })
   end
-  
+
   def test_find_rates
     assert_nothing_raised do
       response = @carrier.find_rates(Location.new(:address1=>"101 Developer Way",:city => 'Richmond', :country => 'US', :zip => '23224', :state=>"VA", :company_name=>"Developer Test 1"),
