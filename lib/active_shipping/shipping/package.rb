@@ -78,7 +78,7 @@ module ActiveMerchant #:nodoc:
       include Quantified
 
       cattr_accessor :default_options
-      attr_reader :options, :value, :currency
+      attr_reader :options, :value, :currency, :quantity
 
       # Package.new(100, [10, 20, 30], :units => :metric)
       # Package.new(Mass.new(100, :grams), [10, 20, 30].map {|m| Length.new(m, :centimetres)})
@@ -89,6 +89,8 @@ module ActiveMerchant #:nodoc:
         @options = options
 
         @dimensions = [dimensions].flatten.reject(&:nil?)
+        @quantity = options[:quantity].present? && options[:quantity] > 0 ? options[:quantity] : 1
+
 
         imperial = (options[:units] == :imperial) ||
                    ([grams_or_ounces, *dimensions].all? { |m| m.respond_to?(:unit) && m.unit.to_sym == :imperial })
