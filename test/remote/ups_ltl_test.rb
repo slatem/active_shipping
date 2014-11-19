@@ -15,40 +15,22 @@ class UPSLTLTest < Test::Unit::TestCase
         :country=>"US"
                           })
   end
-
-=begin
-  def test_build_rate_request
-    assert_nothing_raised do
-      response = @carrier.build_rate_request(Location.new(:address1=>"101 Developer Way",:city => 'Indianapolis', :country => 'US', :zip => '46256', :state=>"IN", :company_name=>"BoxFox"),
-                                            Location.new(:address1=>"101 Developer Way", :city => 'Indianapolis', :country => 'US', :zip => '46256', :state=>"IN", :company_name=>"BoxFox"),
-                                            Package.new(100*16, [48, 48, 48], {:units=>:imperial}),
-                                            @payer,
-                                            {
-                                             :test => true,
-                                             :nmfc_code=>"28160",
-                                             :nmfc_subcode=>"1",
-                                             :imperial=>true,
-                                             :freight_class=>"110"
-                                            }
-                                            )
-    end
-  end
-=end
-
+  
   def test_find_rates
-    response = @carrier.find_rates(Location.new(:address1=>"101 Developer Way",:city => 'Richmond', :country => 'US', :zip => '23224', :state=>"VA", :company_name=>"Developer Test 1"),
-                                   Location.new(:address1=>"1000 Consignee Street", :city => 'Allanton', :country => 'US', :zip => '63025', :state=>"MO", :company_name=>"Consignee Test 1"),
-                                           Package.new(1500*16, [48, 48, 48], {:units=>:imperial}),
-                                           @payer,
-                                           {
-                                               :test => true,
-                                               :nmfc_code=>"116030",
-                                               :nmfc_subcode=>"1",
-                                               :freight_class=>"92.5",
-                                               :imperial=>true
-                                           }
-    )
-
+    assert_nothing_raised do
+      response = @carrier.find_rates(Location.new(:address1=>"101 Developer Way",:city => 'Richmond', :country => 'US', :zip => '23224', :state=>"VA", :company_name=>"Developer Test 1"),
+                                     Location.new(:address1=>"1000 Consignee Street", :city => 'Allanton', :country => 'US', :zip => '63025', :state=>"MO", :company_name=>"Consignee Test 1"),
+                                             Package.new(1500*16, [48, 48, 48], {:units=>:imperial}),
+                                             @payer,
+                                             {
+                                                 :test => true,
+                                                 :nmfc_code=>"116030",
+                                                 :nmfc_subcode=>"1",
+                                                 :freight_class=>"92.5",
+                                                 :imperial=>true
+                                             }
+      )
+    end
   end
 
 end

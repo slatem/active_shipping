@@ -3,6 +3,7 @@
 module ActiveMerchant
   module Shipping
     class UPSLTL < UPS
+      require 'nokogiri'
 
       TEST_URL = 'https://wwwcie.ups.com'
       LIVE_URL = 'https://onlinetools.ups.com'
@@ -23,25 +24,96 @@ module ActiveMerchant
           :bill_of_lading => 57
       }
 
-      def commit(action, request, test = false)
-        ssl_post("#{test ? TEST_URL : LIVE_URL}/#{RESOURCES[action]}", request, 'Content-Type' => 'text/xml')#, 'SOAPAction' => "http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0#UPSSecurity")
-      end
 
       def find_rates(origin, destination, packages, payer, options = {})
         origin, destination = upsified_location(origin), upsified_location(destination)
         options = @options.merge(options)
         packages = Array(packages)
         rate_request = build_rate_request(origin, destination, packages, payer, options)
-        puts rate_request.to_s
-        puts ""
-        #puts rate_request
-        #hash = Hash.from_xml(rate_request.to_s)
-        #client = Savon.client(wsdl: 'lib/active_shipping/shipping/carriers/support/wsdl/ups/FreightRate.wsdl')
-        #response = client.call(:process_freight_rate, soap_header: access_header_hash, message: hash)
-
         response = commit(:rates, save_request(rate_request), (options[:test] || false))
-        puts response
+        @origin = origin
+        @desination = destination
+        @packages = packages
+        @payer = payer
+        @options = options
         #parse_rate_response(origin, destination, packages, response, options)
+        parse(response)
+      end
+
+      protected
+
+      def response_message(xml)
+        xml.at('Response > ResponseStatus > Description').text
+      end
+
+      def parse(xml)
+        response_options = {}
+        response_options[:xml] = xml
+        response_options[:request] = last_request
+        response_options[:test] = test_mode?
+
+        document = Nokogiri::XML(xml)
+        document.remove_namespaces!
+        child_element = document.css('Body > *').first
+        parse_method = 'parse_' + child_element.name.underscore
+        if respond_to?(parse_method, true)
+          send(parse_method, child_element, response_options)
+        else
+          Response.new(false, "Unknown response object #{child_element.name}", response_options)
+        end
+      end
+
+      def parse_success_response?(xml)
+        xml.at('Response > ResponseStatus > Code').text == '1'
+      end
+      alias_method :response_success?, :parse_success_response?
+
+      def parse_freight_rate_response(xml, options)
+        success = parse_success_response?(xml)
+        message = response_message(xml)
+
+        if success
+          rate_estimates = []
+          total_charge = xml.at('TotalShipmentCharge > MonetaryValue').text
+          service_description = "LTL Ground"
+          service_code = 308
+          rate_estimates << RateEstimate.new(@origin, @destination, @@name,
+                                             service_name_for(@origin, service_code),
+                                             :total_price => total_charge.to_f,
+                                             :currency => xml.at('TotalShipmentCharge > CurrencyCode').text,
+                                             :service_code => service_code,
+                                             :packages => @packages)
+        end
+        RateResponse.new(success, message, Hash.from_xml(xml.to_xml).values.first, :rates => rate_estimates, :xml => xml, :request => options[:request])
+      end
+      def parse_rate_response(origin, destination, packages, response, options = {})
+        rates = []
+        xml = Nokogiri::XML(response)
+        success = response_success?(xml)
+        message = response_message(xml)
+
+        if success
+          rate_estimates = []
+
+          xml.elements.each('/*/TotalShipmentCharge') do |rated_shipment|
+            service_code = rated_shipment.get_text('Service/Code').to_s.to_i
+            #days_to_delivery = nil if days_to_delivery == 0
+            rate_estimates << RateEstimate.new(origin, destination, @@name,
+                                               service_name_for(origin, service_code),
+                                               :total_price => rated_shipment.get_text('TotalShipmentCharge/MonetaryValue').to_s.to_f,
+
+                                               :currency => rated_shipment.get_text('TotalCharges/CurrencyCode').to_s,
+                                               :service_code => service_code,
+                                               :packages => packages,
+                                               #:negotiated_rate =>                              rated_shipment.get_text('NegotiatedRates/NetSummaryCharges/GrandTotal/MonetaryValue').to_s.to_f
+            )
+          end
+        end
+        RateResponse.new(success, message, Hash.from_xml(response).values.first, :rates => rate_estimates, :xml => response, :request => last_request)
+      end
+
+      def commit(action, request, test = false)
+        ssl_post("#{test ? TEST_URL : LIVE_URL}/#{RESOURCES[action]}", request, 'Content-Type' => 'text/xml')#, 'SOAPAction' => "http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0#UPSSecurity")
       end
 
       def build_header
