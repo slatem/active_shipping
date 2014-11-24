@@ -13,7 +13,8 @@ module ActiveMerchant
           :rates => 'FreightRate.wsdl'
       }
       RESOURCES = {
-          :rates => 'webservices/FreightRate'
+          :rates => 'webservices/FreightRate',
+          :ship => 'webservices/FreightShip'
       }
       DEFAULT_SERVICES = {
           "LTL Ground" => 308,
@@ -21,23 +22,42 @@ module ActiveMerchant
 
       REFERENCE_NUMBERS = {
           :purchase_order => 28,
-          :bill_of_lading => 57
+          :bill_of_lading => 57,
+          :label => 30,
+          :ups_bol => 20
       }
-
 
       def find_rates(origin, destination, packages, payer, options = {})
         origin, destination = upsified_location(origin), upsified_location(destination)
         options = @options.merge(options)
-        packages = Array(packages)
-        rate_request = build_rate_request(origin, destination, packages, payer, options)
-        #puts rate_request.to_s
-        response = commit(:rates, save_request(rate_request), (options[:test] || false))
         @origin = origin
         @desination = destination
         @packages = packages
         @payer = payer
         @options = options
+        @action = RESOURCES[:rates]
+        packages = Array(packages)
+        rate_request = build_rate_request(origin, destination, packages, payer, options)
+        #puts rate_request.to_s
+        response = commit(:rates, save_request(rate_request), (options[:test] || false))
         parse(response)
+      end
+
+      def ship(origin, destination, packages, payer, options = {})
+        origin, destination = upsified_location(origin), upsified_location(destination)
+        options = @options.merge(options)
+        @origin = origin
+        @desination = destination
+        @packages = packages
+        @payer = payer
+        @options = options
+        @action = RESOURCES[:ship]
+        packages = Array(packages)
+        rate_request = build_ship_request(origin, destination, packages, payer, options)
+        puts rate_request.to_s
+        response = commit(:ship, save_request(rate_request), (options[:test] || false))
+        #parse(response)
+        puts response.to_yaml
       end
 
       protected
@@ -98,10 +118,11 @@ module ActiveMerchant
       def build_header
         xml = Builder::XmlMarkup.new
         xml.instruct!
+        frt = @action == RESOURCES[:rates] ? "http://www.ups.com/XMLSchema/XOLTWS/FreightRate/v1.0" : "http://www.ups.com/XMLSchema/XOLTWS/FreightShip/v1.0"
         xml.soap(:Envelope,
                  'xmlns:soap' => 'http://schemas.xmlsoap.org/soap/envelope/',
                  'xmlns:req'=>"http://www.ups.com/XMLSchema/XOLTWS/Common/v1.0",
-                 'xmlns:frt'=>"http://www.ups.com/XMLSchema/XOLTWS/FreightRate/v1.0",
+                 'xmlns:frt'=>frt,
                  'xmlns:upss'=>"http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0"
         ) do
           xml.soap :Header do
@@ -239,6 +260,50 @@ module ActiveMerchant
         end
       end
 
+      def build_shipper_number_node(xml,options)
+          xml.frt :ShipperNumber, options[:shipper_number]
+      end
+
+      def build_ship_request(origin, destination, packages, payer, options = {})
+        packages = Array(packages)
+        build_header do |xml|
+          xml.frt :FreightShipRequest do
+            build_request_node(xml,options)
+            xml.frt :Shipment do
+              build_shipper_number_node(xml,options)
+              build_location_node(xml,'ShipFrom', origin, options)
+              build_location_node(xml, 'ShipTo', destination, options)
+              build_payment_node(xml, 'PaymentInformation', payer, options)
+              build_service_node(xml, 'Service', options)
+              build_quantity_node(xml, 'HandlingUnitOne', packages, options)
+              build_document_request(xml,options)
+              build_pickup_request(xml, origin,options)
+              packages.each do |package|
+                xml.frt :Commodity do
+                  build_commodity_node(xml, package, options)
+                end
+              end
+              if [:residential_pickup,:lift_gate_required_on_pickup, :residential_delivery, :lift_gate_required_on_delivery].any? { |i| options.include?(i) }
+                xml.frt :ShipmentServiceOptions do
+                  if options[:residential_pickup] || options[:lift_gate_required_on_pickup]
+                    xml.frt :PickupOptions do
+                      xml.frt :ResidentialPickupIndicator unless options[:residential_pickup].nil?
+                      xml.frt :LiftGateRequiredIndicator unless options[:lift_gate_required_on_pickup].nil?
+                    end
+                  end
+                  if options[:residential_delivery] || options[:lift_gate_required_on_delivery]
+                    xml.frt :DeliveryOptions do
+                      xml.frt :ResidentialDeliveryIndicator unless options[:residential_delivery].nil?
+                      xml.frt :LiftGateRequiredIndicator unless options[:lift_gate_required_on_delivery].nil?
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+
       def build_rate_request(origin, destination, packages, payer, options = {})
         packages = Array(packages)
         build_header do |xml|
@@ -273,6 +338,62 @@ module ActiveMerchant
           end
         end
       end
+
+      def build_pickup_request(xml, origin, options)
+        xml.frt :PickupRequest do
+          xml.frt :Requester do
+            xml.frt :AttentionName, origin.name
+            xml.frt :Name, origin.name
+            xml.frt :EMailAddress, origin.email
+            xml.frt :Phone do
+              xml.frt :Number, origin.phone
+            end
+          end
+          xml.frt :PickupDate, options[:pickup_date]
+          xml.frt :LatestTimeReady, options[:latest_time_ready]
+          xml.frt :EarliestTimeReady, options[:earliest_time_ready]
+        end
+      end
+
+      def build_document_request(xml,options)
+          xml.frt :Documents do
+            xml.frt :Image do
+              xml.frt :Type do
+                xml.frt :Code, REFERENCE_NUMBERS[:ups_bol]
+              end
+              xml.frt :LabelsPerPage, 01 #1 label per page
+              xml.frt :Format do
+                xml.frt :Code, "01" #PDF, only valid value
+                xml.frt :Description, "pdf"
+              end
+              xml.frt :PrintFormat do
+                xml.frt :Code, 01 #laser, thermal is 02
+              end
+              xml.frt :PrintSize do
+                xml.frt :Length, 8 #11 inch paper
+                xml.frt :Width, 11 #8 inch wide
+              end
+            end
+            xml.frt :Image do
+              xml.frt :Type do
+                xml.frt :Code, REFERENCE_NUMBERS[:label]
+              end
+              xml.frt :LabelsPerPage, "01" #1 label per page
+              xml.frt :Format do
+                xml.frt :Code, "01" #PDF, only valid value
+                xml.frt :Description, "pdf"
+              end
+              xml.frt :PrintFormat do
+                xml.frt :Code, "01" #laser, thermal is 02
+              end
+              xml.frt :PrintSize do
+                xml.frt :Length, 8 #11 inch paper
+                xml.frt :Width, 11 #8 inch wide
+              end
+            end
+          end
+      end
+
       def build_location_node(xml, name, location, options = {})
         # not implemented:  * Shipment/Shipper/Name element
         #                   * Shipment/(ShipTo|ShipFrom)/CompanyName element
@@ -282,7 +403,7 @@ module ActiveMerchant
           # You must specify the shipper name when creating labels.
 
           xml.frt :Name, location.company_name unless location.company_name.blank?
-          xml.frt :PhoneNumber, location.phone.gsub(/[^\d]/, '') unless location.phone.blank?
+          #xml.frt :PhoneNumber, location.phone.gsub(/[^\d]/, '') unless location.phone.blank?
           xml.frt :FaxNumber, location.fax.gsub(/[^\d]/, '') unless location.fax.blank?
 
           if name == 'Shipper' and (origin_account = options[:origin_account] || @options[:origin_account])
@@ -291,8 +412,11 @@ module ActiveMerchant
             xml.frt :ShipperAssignedIdentificationNumber, destination_account
           end
 
-          if phone = location.phone
-            xml.frt :PhoneNumber, phone
+          if (phone = location.phone) && @action == RESOURCES[:ship]
+            xml.frt :Phone do
+              xml.frt :Number, phone
+              #xml.frt :Extension, ""
+            end
           end
 
           if attn = location.name

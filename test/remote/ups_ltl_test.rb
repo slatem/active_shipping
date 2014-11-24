@@ -12,8 +12,31 @@ class UPSLTLTest < Test::Unit::TestCase
         :city=>"Richmond",
         :state=>"VA",
         :zip=>"23224",
-        :country=>"US"
+        :country=>"US",
+        :phone=>3175555555
                           })
+  end
+
+  def test_ship
+    assert_nothing_raised do
+      #email, name, and phone number are required
+      response = @carrier.ship(Location.new(:email=>"john@aol.com", :name=>"John Smith",:address1=>"101 Developer Way",:city => 'Richmond', :country => 'US', :zip => '23224', :state=>"VA", :company_name=>"Developer Test 1",:phone=>3175555555),
+                                     Location.new(:address1=>"1000 Consignee Street", :city => 'Allanton', :country => 'US', :zip => '63025', :state=>"MO", :company_name=>"Consignee Test 1"),
+                                     Package.new(1500*16, [48, 48, 48], {:units=>:imperial}),
+                                     @payer,
+                                     {
+                                         :test => true,
+                                         :nmfc_code=>"116030",
+                                         :nmfc_subcode=>"1",
+                                         :freight_class=>"92.5",
+                                         :shipper_number=>@options[:shipper_number],
+                                         :imperial=>true,
+                                         :pickup_date=>Date.tomorrow.to_time.strftime("%Y%m%d"),
+                                         :latest_time_ready => Time.now.strftime("%H%M"),
+                                         :earliest_time_ready => "0900"
+                                     }
+      )
+    end
   end
 
   def test_find_rates
