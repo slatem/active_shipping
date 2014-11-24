@@ -281,7 +281,7 @@ module ActiveMerchant
             # Required element. The delivery destination.
             shipment  << build_location_node('ShipTo', destination, {})
             # Required element. The company whose account is responsible for the label(s).
-            shipment  << build_location_node('Shipper', options[:shipper] || origin, {})
+            shipment  << build_location_node('Shipper', options[:shipper] || origin, options)
             # Required if pickup is different different from shipper's address.
             if options[:ship_from]
               shipment  << build_location_node('ShipFrom', options[:ship_from], {})
