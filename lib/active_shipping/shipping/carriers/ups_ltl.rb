@@ -54,10 +54,10 @@ module ActiveMerchant
         @action = RESOURCES[:ship]
         packages = Array(packages)
         rate_request = build_ship_request(origin, destination, packages, payer, options)
-        puts rate_request.to_s
+        #puts rate_request.to_s
         response = commit(:ship, save_request(rate_request), (options[:test] || false))
-        #parse(response)
-        puts response.to_yaml
+        #puts response.to_yaml
+        parse(response)
       end
 
       protected
@@ -81,6 +81,13 @@ module ActiveMerchant
         else
           Response.new(false, "Unknown response object #{child_element.name}", response_options)
         end
+      end
+
+      def parse_freight_ship_response(xml,options)
+        success = parse_success_response?(xml)
+        message = response_message(xml)
+
+        LTLLabelResponse.new(success, message, Hash.from_xml(xml.to_xml).values.first)
       end
 
       def parse_success_response?(xml)
