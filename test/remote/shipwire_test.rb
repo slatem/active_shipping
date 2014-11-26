@@ -39,6 +39,7 @@ class RemoteShipwireTest < Test::Unit::TestCase
   end
 
   def test_successful_international_rates_request_for_single_line_item
+    skip 'ActiveMerchant::Shipping::ResponseError: No shipping rates could be found for the destination address'
     response = @carrier.find_rates(
                  @locations[:ottawa],
                  @locations[:london],
@@ -56,7 +57,7 @@ class RemoteShipwireTest < Test::Unit::TestCase
     @carrier.expects(:ssl_post).returns("")
 
     assert_raises ActiveMerchant::Shipping::ResponseContentError do
-      rate_estimates = @carrier.find_rates(
+      @carrier.find_rates(
         @locations[:ottawa],
         @locations[:london],
         @packages.values_at(:book, :wii),
