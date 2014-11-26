@@ -23,21 +23,37 @@ module ActiveMerchant #:nodoc:
     end
 
     class LTLLabelResponse < LabelResponse
+      def bill_of_lading
+        documents("BOL")
+      end
+
       def labels
-        return @labels if @labels
+        documents("LABEL")
+      end
+
+      private
+
+      # types
+      # BOL - Bill of Lading
+      # LABEL - labels
+      def documents(type)
         packages = params["ShipmentResults"]["Documents"]
         packages = [packages] if Hash === packages
-        @labels = []
+        thelabels = []
+        bill_of_lading = ""
         packages.map do |package|
           package["Image"].each_with_index do |image,index|
             if index == 0
-              @bill_of_lading = image["GraphicImage"]
+              bill_of_lading = image["GraphicImage"]
+              if type == "BOL"
+                return bill_of_lading
+              end
             else
-              @labels << {:image => image["GraphicImage"] }
+              thelabels << {:image => image["GraphicImage"] }
             end
           end
         end
-        {:labels=>@labels, :bol=>@bill_of_lading}
+        thelabels
       end
     end
   end

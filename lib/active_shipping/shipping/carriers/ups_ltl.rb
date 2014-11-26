@@ -38,7 +38,6 @@ module ActiveMerchant
         @action = RESOURCES[:rates]
         packages = Array(packages)
         rate_request = build_rate_request(origin, destination, packages, payer, options)
-        #puts rate_request.to_s
         response = commit(:rates, save_request(rate_request), (options[:test] || false))
         parse(response)
       end
@@ -54,9 +53,7 @@ module ActiveMerchant
         @action = RESOURCES[:ship]
         packages = Array(packages)
         rate_request = build_ship_request(origin, destination, packages, payer, options)
-        #puts rate_request.to_s
         response = commit(:ship, save_request(rate_request), (options[:test] || false))
-        #puts response.to_yaml
         parse(response)
       end
 
@@ -214,7 +211,7 @@ module ActiveMerchant
 
       def build_packaging_type_node(xml, node, options={})
         xml.frt node.to_sym do
-          xml.frt :Code, "PLT"
+          xml.frt :Code, "BOX"
         end
       end
 
@@ -250,8 +247,14 @@ module ActiveMerchant
         end
       end
 
+      def build_commodity_id_node(xml,package,options)
+        xml.frt :CommodityID, Digest::MD5.hexdigest(package.to_s).to_s
+      end
+
       def build_commodity_node(xml, package, options={})
           xml.frt :Description, "Consumer Goods"
+          # causes failure for rating API
+          #build_commodity_id_node(xml, package, options)
           build_weight_node(xml, 'Weight', package, options)
           build_number_pieces_node(xml, 'NumberOfPieces', package, options)
           build_packaging_type_node(xml, 'PackagingType', options)
@@ -283,7 +286,7 @@ module ActiveMerchant
               build_payment_node(xml, 'PaymentInformation', payer, options)
               build_service_node(xml, 'Service', options)
               build_quantity_node(xml, 'HandlingUnitOne', packages, options)
-              build_document_request(xml,options)
+              build_document_request(xml, packages, options)
               build_pickup_request(xml, origin,options)
               packages.each do |package|
                 xml.frt :Commodity do
@@ -362,7 +365,7 @@ module ActiveMerchant
         end
       end
 
-      def build_document_request(xml,options)
+      def build_document_request(xml, packages, options)
           xml.frt :Documents do
             xml.frt :Image do
               xml.frt :Type do
@@ -381,21 +384,23 @@ module ActiveMerchant
                 xml.frt :Width, 11 #8 inch wide
               end
             end
-            xml.frt :Image do
-              xml.frt :Type do
-                xml.frt :Code, REFERENCE_NUMBERS[:label]
-              end
-              xml.frt :LabelsPerPage, "01" #1 label per page
-              xml.frt :Format do
-                xml.frt :Code, "01" #PDF, only valid value
-                xml.frt :Description, "pdf"
-              end
-              xml.frt :PrintFormat do
-                xml.frt :Code, "01" #laser, thermal is 02
-              end
-              xml.frt :PrintSize do
-                xml.frt :Length, 8 #11 inch paper
-                xml.frt :Width, 11 #8 inch wide
+            packages.each do |p|
+              xml.frt :Image do
+                xml.frt :Type do
+                  xml.frt :Code, REFERENCE_NUMBERS[:label]
+                end
+                xml.frt :LabelsPerPage, "01" #1 label per page
+                xml.frt :Format do
+                  xml.frt :Code, "01" #PDF, only valid value
+                  xml.frt :Description, "pdf"
+                end
+                xml.frt :PrintFormat do
+                  xml.frt :Code, "01" #laser, thermal is 02
+                end
+                xml.frt :PrintSize do
+                  xml.frt :Length, 8 #11 inch paper
+                  xml.frt :Width, 11 #8 inch wide
+                end
               end
             end
           end
