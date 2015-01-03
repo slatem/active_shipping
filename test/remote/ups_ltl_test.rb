@@ -31,7 +31,7 @@ class UPSLTLTest < Test::Unit::TestCase
                                          :freight_class=>"92.5",
                                          :shipper_number=>@options[:shipper_number],
                                          :imperial=>true,
-                                         :pickup_date=>Date.tomorrow.to_time.strftime("%Y%m%d"),
+                                         :pickup_date=>Date.commercial(Date.today.year, 1+Date.today.cweek, 1).to_time.strftime("%Y%m%d"),
                                          :latest_time_ready => "2000",
                                          :earliest_time_ready => "0900"
                                      }
@@ -54,7 +54,7 @@ class UPSLTLTest < Test::Unit::TestCase
                                    :freight_class=>"92.5",
                                    :shipper_number=>@options[:shipper_number],
                                    :imperial=>true,
-                                   :pickup_date=>Date.tomorrow.to_time.strftime("%Y%m%d"),
+                                   :pickup_date=>Date.commercial(Date.today.year, 1+Date.today.cweek, 1).to_time.strftime("%Y%m%d"),
                                    :latest_time_ready => "2000",
                                    :earliest_time_ready => "0900"
                                }
@@ -112,7 +112,7 @@ class UPSLTLTest < Test::Unit::TestCase
                                          :imperial=>true
                                      })
       response_string = response.xml.to_s
-      assert_match  "562.74", response_string, "Must include Correct Price - 562.74"
+      assert_match  "570.74", response_string, "Must include Correct Price - 562.74"
     end
   end
   def test_find_rates_lift_gate_delivery
@@ -131,7 +131,7 @@ class UPSLTLTest < Test::Unit::TestCase
                                          :imperial=>true
                                      })
       response_string = response.xml.to_s
-      assert_match  "570.74", response_string, "Must include Correct Price - 570.74"
+      assert_match  "575.74", response_string, "Must include Correct Price - 570.74"
     end
   end
 
