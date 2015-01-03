@@ -179,7 +179,7 @@ class UPSTest < Test::Unit::TestCase
                   "UPS Saver"], response.rates.map(&:service_name)
     assert_equal [18893, 17856, 23473, 18286], response.rates.map(&:price)
     assert_equal [18704, 17677, 23238, 18103], response.rates.map(&:negotiated_rate)
-   end
+  end
 
   def test_delivery_range_takes_weekend_into_consideration
     mock_response = xml_fixture('ups/test_real_home_as_residential_destination_response')
@@ -273,10 +273,9 @@ class UPSTest < Test::Unit::TestCase
                                            @locations[:beverly_hills],
                                            @locations[:annapolis],
                                            @packages.values_at(:chocolate_stuff),
-                                           options = {
-                                             :test => true,
-                                             :saturday_delivery => true
-                                           })
+                                           :test => true,
+                                           :saturday_delivery => true
+                             )
 
     saturday = response.search '/ShipmentConfirmRequest/Shipment/ShipmentServiceOptions/SaturdayDelivery'
     refute_empty saturday
@@ -287,11 +286,10 @@ class UPSTest < Test::Unit::TestCase
                                            @locations[:beverly_hills],
                                            @locations[:annapolis],
                                            @packages.values_at(:chocolate_stuff),
-                                           options = {
-                                             :test => true,
-                                             :saturday_delivery => true,
-                                             :origin_account => 'A01B23' # without this option, a negotiated rate will not be requested
-                                           })
+                                           :test => true,
+                                           :saturday_delivery => true,
+                                           :origin_account => 'A01B23' # without this option, a negotiated rate will not be requested
+                             )
 
     negotiated_rates = response.search '/ShipmentConfirmRequest/Shipment/RateInformation/NegotiatedRatesIndicator'
     refute_empty negotiated_rates
