@@ -327,7 +327,7 @@ module ActiveMerchant
               print_method << XmlNode.new('Code', 'GIF')
             end
             specification  << XmlNode.new('HTTPUserAgent', 'Mozilla/4.5') # hmmm
-            specification  << XmlNode.new('LabelImageFormat', 'GIF') do |image_format|
+            specification  << XmlNode.new('LabelImageFormat') do |image_format|
               image_format << XmlNode.new('Code', 'GIF')
             end
           end
