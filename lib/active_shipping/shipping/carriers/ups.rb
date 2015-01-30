@@ -161,7 +161,6 @@ module ActiveMerchant
 
         rescue RuntimeError => e
           raise "Could not obtain shipping label. #{e.message}."
-
         end
       end
 

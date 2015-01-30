@@ -17,6 +17,14 @@ class UPSLTLTest < Test::Unit::TestCase
                           })
   end
 
+  def test_track
+    assert_nothing_raised do
+      #email, name, and phone number are required
+      response = @carrier.find_tracking_info("562128921")
+      assert_respond_to(response,'delivered?', 'Track Method Does not throw err')
+    end
+  end
+
   def test_ship
     assert_nothing_raised do
       #email, name, and phone number are required
@@ -40,6 +48,8 @@ class UPSLTLTest < Test::Unit::TestCase
     end
 
   end
+
+
   def test_ship_multiple_pkgs
     assert_nothing_raised do
       #email, name, and phone number are required
@@ -134,5 +144,4 @@ class UPSLTLTest < Test::Unit::TestCase
       assert_match  "575.74", response_string, "Must include Correct Price - 570.74"
     end
   end
-
 end

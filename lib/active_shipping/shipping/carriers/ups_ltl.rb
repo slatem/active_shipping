@@ -14,7 +14,8 @@ module ActiveMerchant
       }
       RESOURCES = {
           :rates => 'webservices/FreightRate',
-          :ship => 'webservices/FreightShip'
+          :ship => 'webservices/FreightShip',
+          :track => 'webservices/Track'
       }
       DEFAULT_SERVICES = {
           "LTL Ground" => 308,
@@ -57,6 +58,14 @@ module ActiveMerchant
         parse(response)
       end
 
+      def find_tracking_info(tracking_number, options = {})
+        @tracking_number = tracking_number
+        @action = RESOURCES[:track]
+        tracking_request = build_track_request(tracking_number)
+        response = commit(:track, save_request(tracking_request), (options[:test] || false))
+        parse(response)
+      end
+
       protected
 
       def response_message(xml)
@@ -78,6 +87,37 @@ module ActiveMerchant
         else
           Response.new(false, "Unknown response object #{child_element.name}", response_options)
         end
+      end
+
+      def parse_track_response(xml,options)
+        success = parse_success_response?(xml)
+        message = response_message(xml)
+        descr, current_status,scheduled_delivery_date, delivery_date = nil
+        if success
+          current_status = xml.at('CurrentStatus > Code').text
+          descr = descr.text if descr = xml.at('CurrentStatus > Description')
+          scheduled_delivery_date = scheduled_delivery_date.text if scheduled_delivery_date = xml.at('EstimatedDeliveryDetails > DeliveryDate')
+          delivery_date = delivery_date.text if delivery_date = xml.at('DeliveryDetails > DeliveryDate')
+
+        end
+        xml.at("PickUpServiceCenter").remove # fixes xml parsing problem
+        TrackingResponse.new(success, message, Hash.from_xml(xml.to_xml).values.first,
+                             :carrier => "UPS LTL",
+                             :xml => xml.to_xml,
+                             :request => nil,
+                             :status => current_status,
+                             :status_code => current_status,
+                             :status_description => descr,
+                             :delivery_signature => nil,
+                             :scheduled_delivery_date => scheduled_delivery_date,
+                             :actual_delivery_date => delivery_date,
+                             :shipment_events => nil,
+                             :delivered => current_status == '011' ? true : false,
+                             :exception => nil,
+                             :exception_event => nil,
+                             :origin => nil,
+                             :destination => nil,
+                             :tracking_number => @tracking_number)
       end
 
       def parse_freight_ship_response(xml,options)
@@ -122,7 +162,14 @@ module ActiveMerchant
       def build_header
         xml = Builder::XmlMarkup.new
         xml.instruct!
-        frt = @action == RESOURCES[:rates] ? "http://www.ups.com/XMLSchema/XOLTWS/FreightRate/v1.0" : "http://www.ups.com/XMLSchema/XOLTWS/FreightShip/v1.0"
+        frt = case @action
+                when RESOURCES[:rates]
+                  "http://www.ups.com/XMLSchema/XOLTWS/FreightRate/v1.0"
+                when RESOURCES[:track]
+                  "http://www.ups.com/XMLSchema/XOLTWS/Track/v1.0"
+                when RESOURCES[:ship]
+                  "http://www.ups.com/XMLSchema/XOLTWS/FreightShip/v1.0"
+              end
         xml.soap(:Envelope,
                  'xmlns:soap' => 'http://schemas.xmlsoap.org/soap/envelope/',
                  'xmlns:req'=>"http://www.ups.com/XMLSchema/XOLTWS/Common/v1.0",
@@ -272,6 +319,34 @@ module ActiveMerchant
 
       def build_shipper_number_node(xml,options)
           xml.frt :ShipperNumber, options[:shipper_number]
+      end
+
+      def build_track_request(tracking_number)
+        build_header do |xml|
+          xml.frt :TrackRequest do
+            xml.frt :Request do
+              xml.frt :TransactionReference do
+                xml.frt :CustomerContext, 'Add description here'
+                xml.frt :XpciVersion, "1.0"
+              end
+              xml.frt :RequestOption, 15
+            end
+            xml.frt :InquiryNumber, tracking_number
+            xml.frt :TrackingOption, 02
+          end
+        end
+      end
+
+      def build_void_shipment_request(tracking_number)
+        build_header do |xml|
+          xml.frt :VoidShipmentRequest do
+            xml.frt :Request do
+              xml.frt :RequestOption, 1
+              xml.frt :RequestAction, 1
+            end
+            xml.frt :ShipmentIdentificationNumber, tracking_number
+          end
+        end
       end
 
       def build_ship_request(origin, destination, packages, payer, options = {})
