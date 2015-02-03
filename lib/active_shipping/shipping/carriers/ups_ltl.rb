@@ -98,14 +98,13 @@ module ActiveMerchant
           descr = descr.text if descr = xml.at('CurrentStatus > Description')
           scheduled_delivery_date = scheduled_delivery_date.text if scheduled_delivery_date = xml.at('EstimatedDeliveryDetails > DeliveryDate')
           delivery_date = delivery_date.text if delivery_date = xml.at('DeliveryDetails > DeliveryDate')
-
         end
         xml.at("PickUpServiceCenter").remove # fixes xml parsing problem
         TrackingResponse.new(success, message, Hash.from_xml(xml.to_xml).values.first,
                              :carrier => "UPS LTL",
                              :xml => xml.to_xml,
                              :request => nil,
-                             :status => current_status,
+                             :status => current_status == '011' ? :delivered : :in_transit,
                              :status_code => current_status,
                              :status_description => descr,
                              :delivery_signature => nil,

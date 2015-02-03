@@ -22,6 +22,7 @@ class UPSLTLTest < Test::Unit::TestCase
       #email, name, and phone number are required
       response = @carrier.find_tracking_info("562128921")
       assert_respond_to(response,'delivered?', 'Track Method Does not throw err')
+      assert_equal(response.delivered?, true, "Is delivered")
     end
   end
 
