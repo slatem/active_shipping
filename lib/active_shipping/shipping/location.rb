@@ -13,6 +13,7 @@ module ActiveMerchant #:nodoc:
                   :address2,
                   :address3,
                   :phone,
+                  :extension,
                   :fax,
                   :address_type,
                   :company_name,
@@ -37,6 +38,7 @@ module ActiveMerchant #:nodoc:
         @address2 = options[:address2]
         @address3 = options[:address3]
         @phone = options[:phone]
+        @extension = options[:extension]
         @fax = options[:fax]
         @company_name = options[:company_name] || options[:company]
         @email = options[:email]

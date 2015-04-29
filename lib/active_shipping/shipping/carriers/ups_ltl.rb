@@ -431,6 +431,9 @@ module ActiveMerchant
             xml.frt :EMailAddress, origin.email
             xml.frt :Phone do
               xml.frt :Number, origin.phone
+              if origin.extension.present?
+                xml.frt :Extension, origin.extension
+              end
             end
           end
           xml.frt :PickupDate, options[:pickup_date]

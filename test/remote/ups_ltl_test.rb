@@ -13,7 +13,8 @@ class UPSLTLTest < Test::Unit::TestCase
         :state=>"VA",
         :zip=>"23224",
         :country=>"US",
-        :phone=>3175555555
+        :phone=>3175555555,
+        :extension=>"444"
                           })
   end
 
