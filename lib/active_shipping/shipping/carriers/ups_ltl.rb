@@ -218,7 +218,7 @@ module ActiveMerchant
             end
           end
           xml.frt :ShipmentBillingOption do
-            xml.frt :Code, 10
+            xml.frt :Code, 30
           end
         end
       end
