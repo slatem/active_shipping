@@ -355,7 +355,7 @@ module ActiveMerchant
             build_request_node(xml,options)
             xml.frt :Shipment do
               build_shipper_number_node(xml,options)
-              build_location_node(xml,'ShipFrom', origin, options)
+              build_location_node(xml,'ShipFrom', payer, options)
               build_location_node(xml, 'ShipTo', destination, options)
               build_payment_node(xml, 'PaymentInformation', payer, options)
               build_service_node(xml, 'Service', options)
