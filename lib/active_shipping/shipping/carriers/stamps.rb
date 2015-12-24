@@ -840,7 +840,7 @@ module ActiveMerchant
     end
 
     class StampsShippingResponse < ShippingResponse
-      include PostsData
+      include ActiveUtils::PostsData
 
       self.ssl_version = :SSLv3
 

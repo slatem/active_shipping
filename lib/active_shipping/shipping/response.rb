@@ -1,6 +1,6 @@
 module ActiveMerchant #:nodoc:
   module Shipping #:nodoc:
-    class Error < ActiveMerchant::ActiveMerchantError
+    class Error < ActiveUtils::ActiveUtilsError
     end
 
     class ResponseError < Error

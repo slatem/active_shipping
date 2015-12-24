@@ -1,8 +1,8 @@
 module ActiveMerchant
   module Shipping
     class Carrier
-      include RequiresParameters
-      include PostsData
+      include ActiveUtils::RequiresParameters
+      include ActiveUtils::PostsData
       include Quantified
 
       attr_reader :last_request
