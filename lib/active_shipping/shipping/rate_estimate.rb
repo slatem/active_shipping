@@ -25,7 +25,7 @@ module ActiveMerchant #:nodoc:
         end
         @total_price = Package.cents_from(options[:total_price])
         @negotiated_rate = options[:negotiated_rate] ? Package.cents_from(options[:negotiated_rate]) : nil
-        @currency = ActiveMerchant::CurrencyCode.standardize(options[:currency])
+        @currency = ActiveUtils::CurrencyCode.standardize(options[:currency])
         @delivery_range = options[:delivery_range] ? options[:delivery_range].map { |date| date_for(date) }.compact : []
         @shipping_date = date_for(options[:shipping_date])
         @delivery_date = @delivery_range.last
