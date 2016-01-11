@@ -6,6 +6,7 @@ require 'bundler'
 Bundler.setup
 
 require 'test/unit'
+#require 'minitest'
 require 'active_shipping'
 require 'mocha/setup'
 require 'timecop'

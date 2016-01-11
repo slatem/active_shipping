@@ -154,7 +154,6 @@ module ActiveMerchant
 
           accept_response = commit(:ship_accept, save_request(access_request + accept_request), (options[:test] || false))
           logger.debug(accept_response) if logger
-
           # ...finally, build a map from the response that contains
           # the label data and tracking information.
           parse_ship_accept(accept_response)
@@ -434,6 +433,17 @@ module ActiveMerchant
             package_node << XmlNode.new("ReferenceNumber") do |ref_node|
               ref_node   << XmlNode.new("Code", options[:package][:reference_number][:code] || "")
               ref_node   << XmlNode.new("Value", options[:package][:reference_number][:value])
+            end
+          end
+          if package.value.present? && package.value > 0
+            package_node << XmlNode.new("PackageServiceOptions") do |package_service|
+              package_service << XmlNode.new("DeclaredValue") do |declared_value|
+                declared_value << XmlNode.new("Type") do |type|
+                  type << XmlNode.new("Code", 02)
+                end
+                declared_value << XmlNode.new("CurrencyCode", "USD")
+                declared_value << XmlNode.new("MonetaryValue", package.value / BigDecimal.new(100))
+              end
             end
           end
 

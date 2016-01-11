@@ -211,7 +211,7 @@ class UPSTest < Test::Unit::TestCase
   end
 
   def test_obtain_shipping_label
-    skip '<#<RuntimeError: Could not obtain shipping label. Invalid Access License number.>>.'
+    #skip '<#<RuntimeError: Could not obtain shipping label. Invalid Access License number.>>.'
     response = nil
 
     # I want to provide some helpful information if this test fails.
