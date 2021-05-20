@@ -548,7 +548,7 @@ module ActiveMerchant
           }
         else
           {
-            :country => ActiveMerchant::Country.new(:alpha2 => 'ZZ', :name => 'Unknown or Invalid Territory', :alpha3 => 'ZZZ', :numeric => '999'),
+            :country => 'US', #ActiveMerchant::Country.new(:alpha2 => 'ZZ', :name => 'Unknown or Invalid Territory', :alpha3 => 'ZZZ', :numeric => '999'),
             :province => 'unknown',
             :city => 'unknown'
           }
